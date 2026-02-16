@@ -1,0 +1,41 @@
+# KPIs API + PostgreSQL
+# Uso: copiar .env.example a .env, rellenar HUBSPOT_API_KEY y ejecutar:
+#   docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kpis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kpis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kpis_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-kpis}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # Solo localhost (Apache en el mismo host)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kpis} -d ${POSTGRES_DB:-kpis}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: kpis-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_URL: postgresql+psycopg2://${POSTGRES_USER:-kpis}:${POSTGRES_PASSWORD:-kpis_secret}@postgres:5432/${POSTGRES_DB:-kpis}
+      HUBSPOT_API_KEY: ${HUBSPOT_API_KEY}
+      ORIGIN_HOSTS: ${ORIGIN_HOSTS:-http://localhost:9000,*}
+      GLOBAL_SCHEMA: ${GLOBAL_SCHEMA:-shared}
+      PROD: ${PROD:-true}
+    ports:
+      - "127.0.0.1:9000:9000"
+
+volumes:
+  postgres_data:

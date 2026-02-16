@@ -1,0 +1,29 @@
+[project]
+name = "kpis"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "API KPIs + HubSpot (BD y lectura HubSpot)"
+dependencies = [
+    "fastapi[standard]",
+    "pydantic-settings",
+    "psycopg2-binary",
+    "sqlmodel",
+    "requests",
+    "pytest",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008", "C901"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "starlette"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ty.src]
+root = "./src/app"
