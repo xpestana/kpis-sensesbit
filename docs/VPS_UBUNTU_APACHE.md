@@ -89,7 +89,7 @@ cd /var/www/kpis
 
 ```bash
 cd /var/www/kpis
-sudo cp .env.docker.example .env
+sudo cp .env.example .env
 sudo nano .env
 ```
 
@@ -243,7 +243,7 @@ sudo systemctl enable docker
 
 1. Instalar Docker y Docker Compose en Ubuntu 22.04.
 2. Clonar o copiar el proyecto en `/var/www/kpis`.
-3. Copiar `.env.docker.example` a `.env` y rellenar `POSTGRES_PASSWORD`, `HUBSPOT_API_KEY`, `ORIGIN_HOSTS`.
+3. Copiar `.env.example` a `.env` y rellenar `POSTGRES_PASSWORD`, `HUBSPOT_API_KEY`, `ORIGIN_HOSTS`.
 4. Ejecutar `docker compose up -d` en `/var/www/kpis`.
 5. Configurar Apache como proxy inverso a `http://127.0.0.1:9000` y (opcional) SSL con certbot.
 

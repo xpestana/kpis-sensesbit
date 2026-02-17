@@ -3,7 +3,8 @@ __pycache__
 .mypy_cache
 .pytest_cache
 .ruff_cache
+# Claves y datos locales: NUNCA subir .env a Git
 .env
-!.env.*
+!.env.example
 files/
 .idea/
