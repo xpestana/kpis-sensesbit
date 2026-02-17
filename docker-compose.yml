@@ -3,6 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: kpis-postgres
     restart: unless-stopped
+    mem_limit: 800m
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -19,6 +20,7 @@ services:
     build: .
     container_name: kpis-app
     restart: unless-stopped
+    mem_limit: 450m
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,6 +38,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: kpis-pgadmin
     restart: unless-stopped
+    mem_limit: 300m
     depends_on:
       postgres:
         condition: service_healthy
