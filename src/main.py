@@ -1,6 +1,6 @@
 """API KPIs: BD + HubSpot. Instalación mínima."""
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.kpi import (
@@ -11,6 +11,7 @@ from app.api.kpi import (
     test_router,
     ventas_router,
 )
+from app.core.auth import verify_bearer_token
 from app.core.config import settings
 from app.core.database import init_global_schema
 
@@ -33,14 +34,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(management_router, prefix="/kpi/Management", tags=["kpi-management"])
-app.include_router(producto_router, prefix="/kpi/Producto", tags=["kpi-producto"])
-app.include_router(marketing_router, prefix="/kpi/Marketing", tags=["kpi-marketing"])
-app.include_router(ventas_router, prefix="/kpi/Ventas", tags=["kpi-ventas"])
+# Rutas KPI: exigen header Authorization: Bearer <TOKEN_GRAFANA>
+bearer_dep = [Depends(verify_bearer_token)]
 app.include_router(
-    customer_success_router, prefix="/kpi/CustomerSuccess", tags=["kpi-customer-success"]
+    management_router, prefix="/kpi/Management", tags=["kpi-management"], dependencies=bearer_dep
 )
-app.include_router(test_router, prefix="/kpi/Test", tags=["kpi-test"])
+app.include_router(
+    producto_router, prefix="/kpi/Producto", tags=["kpi-producto"], dependencies=bearer_dep
+)
+app.include_router(
+    marketing_router, prefix="/kpi/Marketing", tags=["kpi-marketing"], dependencies=bearer_dep
+)
+app.include_router(
+    ventas_router, prefix="/kpi/Ventas", tags=["kpi-ventas"], dependencies=bearer_dep
+)
+app.include_router(
+    customer_success_router,
+    prefix="/kpi/CustomerSuccess",
+    tags=["kpi-customer-success"],
+    dependencies=bearer_dep,
+)
+app.include_router(
+    test_router, prefix="/kpi/Test", tags=["kpi-test"], dependencies=bearer_dep
+)
 
 
 @app.get("/health")

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     ORIGIN_HOSTS: str = "http://localhost:9000,*"
     GLOBAL_SCHEMA: str = "shared"
     PROD: bool = False
+    TOKEN_GRAFANA: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

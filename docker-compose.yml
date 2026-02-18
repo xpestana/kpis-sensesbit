@@ -34,7 +34,7 @@ services:
       GLOBAL_SCHEMA: ${GLOBAL_SCHEMA}
       PROD: ${PROD}
     ports:
-      - "127.0.0.1:9000:9000"
+      - "9000:9000"
 
 volumes:
   postgres_data:
