@@ -1,4 +1,7 @@
+from collections.abc import Generator
+
 from sqlalchemy import Engine, create_engine
+from sqlmodel import Session as SessionDB
 from sqlmodel import SQLModel
 
 from app.core.config import settings
@@ -7,6 +10,17 @@ from app.models.organization import OrganizationBase
 engine: Engine = create_engine(
     settings.POSTGRES_URL, pool_size=20, max_overflow=20, pool_timeout=30
 )
+
+
+def get_db_session() -> Generator[SessionDB, None, None]:
+    """Sesión de BD sobre el schema del tenant (ORG_SCHEMA). Para Management y Producto."""
+    db = SessionDB(
+        engine.execution_options(schema_translate_map={None: settings.ORG_SCHEMA})
+    )
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def init_global_schema() -> None:

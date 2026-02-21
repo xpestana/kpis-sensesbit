@@ -1,0 +1,77 @@
+"""Servicio: orquestación y transformación de datos para KPIs de producto."""
+
+from datetime import date
+
+from sqlmodel import Session
+
+from app.repositories.product_repositories.producto_repository import ProductoRepository
+
+
+class ProductoService:
+    def __init__(self, db: Session) -> None:
+        self._repo = ProductoRepository(db)
+
+    def sesiones_creadas_por_fecha(self) -> list[dict]:
+        """KPI 4: Sesiones creadas por fecha."""
+        rows = self._repo.sesiones_creadas_por_fecha()
+        return [
+            {"fecha": f.isoformat() if isinstance(f, date) else str(f), "count": c}
+            for f, c in rows
+        ]
+
+    def dau(self) -> list[dict]:
+        """KPI 5: Usuarios activos diarios (DAU) — por answer.created."""
+        rows = self._repo.usuarios_activos_por_dia()
+        return [
+            {"fecha": f.isoformat() if isinstance(f, date) else str(f), "dau": c}
+            for f, c in rows
+        ]
+
+    def mau(self) -> list[dict]:
+        """KPI 6: Usuarios activos mensuales (MAU)."""
+        rows = self._repo.usuarios_activos_por_mes()
+        return [{"mes": mes, "mau": c} for mes, c in rows]
+
+    def frecuencia_uso(self) -> dict:
+        """KPI 11: Frecuencia de uso = media de sesiones por cliente activo (por tenant)."""
+        total_sesiones, usuarios_activos = self._repo.total_sesiones_y_usuarios_activos()
+        if usuarios_activos == 0:
+            return {"media_sesiones_por_usuario_activo": 0.0, "total_sesiones": 0, "usuarios_activos": 0}
+        media = round(total_sesiones / usuarios_activos, 2)
+        return {
+            "media_sesiones_por_usuario_activo": media,
+            "total_sesiones": total_sesiones,
+            "usuarios_activos": usuarios_activos,
+        }
+
+    def exportaciones_generadas(self) -> dict:
+        """KPI 16: Exportaciones generadas (PDF y Excel) — por file."""
+        por_tipo = self._repo.exportaciones_por_tipo()
+        total = self._repo.total_exportaciones()
+        return {
+            "total": total,
+            "por_tipo": [{"tipo": t or "sin_tipo", "count": c} for t, c in por_tipo],
+        }
+
+    def porcentaje_usuarios_duplican_sesiones(self) -> dict:
+        """KPI 18: % usuarios que duplican sesiones (>= 2 sesiones)."""
+        total_usuarios = self._repo.total_usuarios()
+        usuarios_duplican = self._repo.usuarios_con_al_menos_dos_sesiones()
+        if total_usuarios == 0:
+            return {"porcentaje": 0.0, "usuarios_duplican_sesiones": 0, "total_usuarios": 0}
+        pct = round(100.0 * usuarios_duplican / total_usuarios, 2)
+        return {
+            "porcentaje": pct,
+            "usuarios_duplican_sesiones": usuarios_duplican,
+            "total_usuarios": total_usuarios,
+        }
+
+    def duracion_media_sesion(self) -> dict:
+        """KPI 19: Duración media de sesión (solo sesiones con end_at)."""
+        segundos = self._repo.duracion_media_sesion_segundos()
+        if segundos is None:
+            return {"duracion_media_segundos": None, "duracion_media_minutos": None}
+        return {
+            "duracion_media_segundos": round(segundos, 2),
+            "duracion_media_minutos": round(segundos / 60, 2),
+        }

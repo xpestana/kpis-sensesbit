@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     HUBSPOT_API_KEY: str = ""
     ORIGIN_HOSTS: str = "http://localhost:9000,*"
     GLOBAL_SCHEMA: str = "shared"
+    ORG_SCHEMA: str = "org_n74hvy7njcmb"  # Schema tenant para KPIs (Management, Producto)
     PROD: bool = False
     TOKEN_GRAFANA: str = ""
 
