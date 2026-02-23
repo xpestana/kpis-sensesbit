@@ -4,6 +4,7 @@ from datetime import date
 
 from sqlmodel import Session
 
+from app.core.logto_client import get_active_users as logto_get_active_users
 from app.repositories.product_repositories.producto_repository import ProductoRepository
 
 
@@ -12,25 +13,34 @@ class ProductoService:
         self._repo = ProductoRepository(db)
 
     def sesiones_creadas_por_fecha(self) -> list[dict]:
-        """KPI 4: Sesiones creadas por fecha."""
         rows = self._repo.sesiones_creadas_por_fecha()
         return [
             {"fecha": f.isoformat() if isinstance(f, date) else str(f), "count": c}
             for f, c in rows
         ]
 
-    def dau(self) -> list[dict]:
-        """KPI 5: Usuarios activos diarios (DAU) — por answer.created."""
-        rows = self._repo.usuarios_activos_por_dia()
-        return [
-            {"fecha": f.isoformat() if isinstance(f, date) else str(f), "dau": c}
-            for f, c in rows
-        ]
+    def dau(self, fecha: str | None = None) -> dict:
+        """KPI 5: DAU desde Logto Management API (GET /api/dashboard/users/active)."""
+        date_str = fecha or date.today().isoformat()
+        raw = logto_get_active_users(date_str)
+        if "error" in raw:
+            return {"error": raw["error"], "status": raw.get("status"), "dau": None, "dauCurve": None}
+        return {
+            "dau": raw.get("dau"),
+            "dauCurve": raw.get("dauCurve", []),
+            "date": date_str,
+        }
 
-    def mau(self) -> list[dict]:
-        """KPI 6: Usuarios activos mensuales (MAU)."""
-        rows = self._repo.usuarios_activos_por_mes()
-        return [{"mes": mes, "mau": c} for mes, c in rows]
+    def mau(self, fecha: str | None = None) -> dict:
+        """KPI 6: MAU desde Logto Management API (GET /api/dashboard/users/active)."""
+        date_str = fecha or date.today().isoformat()
+        raw = logto_get_active_users(date_str)
+        if "error" in raw:
+            return {"error": raw["error"], "status": raw.get("status"), "mau": None}
+        return {
+            "mau": raw.get("mau"),
+            "date": date_str,
+        }
 
     def frecuencia_uso(self) -> dict:
         """KPI 11: Frecuencia de uso = media de sesiones por cliente activo (por tenant)."""

@@ -18,32 +18,47 @@ async def test_endpoint():
     """Test endpoint: localhost:8000/kpi/Producto/test"""
     return {"message": "KPI Producto"}
 
+
 ########################################################
 # KPI : Calidad y performance
 ########################################################
 
+
+# Tiempo de respuesta de API
 @router.get("/response-time", response_model=None)
 async def response_time():
     from app.core.response_time_monitor import get_state
     return {"kpi": "Response time (api.sensesbit.com/health)", "datos": get_state()}
 
 
+########################################################
+# KPI : Uso e IA
+########################################################
+
+# Sesiones creadas por fecha
 @router.get("/sesiones-creadas", response_model=None)
 async def sesiones_creadas(service: ProductoService = Depends(get_service)):
-    "sessions created by date. localhost:8000/kpi/Producto/sesiones-creadas"
     return {"kpi": "Sesiones Creadas", "datos": service.sesiones_creadas_por_fecha()}
 
 
+# Usuarios activos diarios (Logto Management API)
 @router.get("/dau", response_model=None)
-async def usuarios_activos_diarios(service: ProductoService = Depends(get_service)):
-    "daily active users. localhost:8000/kpi/Producto/dau"
-    return {"kpi": "DAU", "datos": service.dau()}
+async def usuarios_activos_diarios(
+    service: ProductoService = Depends(get_service),
+    date: str | None = None,
+):
+    """DAU desde Logto GET /api/dashboard/users/active. Opcional: ?date=YYYY-MM-DD."""
+    return {"kpi": "DAU", "datos": service.dau(fecha=date)}
 
 
+# Usuarios activos mensuales (Logto Management API)
 @router.get("/mau", response_model=None)
-async def usuarios_activos_mensuales(service: ProductoService = Depends(get_service)):
-    "monthly active users. localhost:8000/kpi/Producto/mau"
-    return {"kpi": "MAU", "datos": service.mau()}
+async def usuarios_activos_mensuales(
+    service: ProductoService = Depends(get_service),
+    date: str | None = None,
+):
+    """MAU desde Logto GET /api/dashboard/users/active. Opcional: ?date=YYYY-MM-DD."""
+    return {"kpi": "MAU", "datos": service.mau(fecha=date)}
 
 
 @router.get("/frecuencia-uso", response_model=None)

@@ -18,34 +18,10 @@ class ProductoRepository:
         self._db = db
 
     def sesiones_creadas_por_fecha(self) -> list[tuple[date, int]]:
-        """KPI 4: count de sesiones por fecha (session.created)."""
         stmt = (
             select(func.date(SessionModel.created).label("fecha"), func.count(SessionModel.id))
             .group_by(func.date(SessionModel.created))
             .order_by(func.date(SessionModel.created))
-        )
-        rows = self._db.exec(stmt).all()
-        return [(r[0], r[1]) for r in rows] if rows else []
-
-    def usuarios_activos_por_dia(self) -> list[tuple[date, int]]:
-        """KPI 5 DAU: usuarios distintos con al menos una answer.created ese día."""
-        stmt = (
-            select(func.date(Answer.created).label("fecha"), func.count(func.distinct(Answer.user_id)))
-            .group_by(func.date(Answer.created))
-            .order_by(func.date(Answer.created))
-        )
-        rows = self._db.exec(stmt).all()
-        return [(r[0], r[1]) for r in rows] if rows else []
-
-    def usuarios_activos_por_mes(self) -> list[tuple[str, int]]:
-        """KPI 6 MAU: usuarios distintos con al menos una answer en ese mes (YYYY-MM)."""
-        stmt = (
-            select(
-                func.to_char(Answer.created, "YYYY-MM").label("mes"),
-                func.count(func.distinct(Answer.user_id)),
-            )
-            .group_by(func.to_char(Answer.created, "YYYY-MM"))
-            .order_by(func.to_char(Answer.created, "YYYY-MM"))
         )
         rows = self._db.exec(stmt).all()
         return [(r[0], r[1]) for r in rows] if rows else []

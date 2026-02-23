@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     PROD: bool = False
     TOKEN_GRAFANA: str = ""
 
+    # Logto Management API (DAU/MAU: GET /api/dashboard/users/active)
+    LOGTO_API_BASE: str = "https://auth.sensesbit.com"
+    LOGTO_ACCESS_TOKEN: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
