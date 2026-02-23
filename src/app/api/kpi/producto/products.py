@@ -18,6 +18,15 @@ async def test_endpoint():
     """Test endpoint: localhost:8000/kpi/Producto/test"""
     return {"message": "KPI Producto"}
 
+########################################################
+# KPI : Calidad y performance
+########################################################
+
+@router.get("/response-time", response_model=None)
+async def response_time():
+    from app.core.response_time_monitor import get_state
+    return {"kpi": "Response time (api.sensesbit.com/health)", "datos": get_state()}
+
 
 @router.get("/sesiones-creadas", response_model=None)
 async def sesiones_creadas(service: ProductoService = Depends(get_service)):

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,6 +7,15 @@ from app.api.kpi import producto_router
 from app.core.auth import verify_bearer_token
 from app.core.config import settings
 from app.core.database import init_global_schema
+from app.core.response_time_monitor import start_background_task
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_global_schema()
+    start_background_task()
+    yield
+
 
 app = FastAPI(
     title="KPIs API",
@@ -13,7 +24,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     docs_url="/docs",
     redoc_url="/doc",
-    on_startup=[init_global_schema],
+    lifespan=lifespan,
 )
 
 origins = [o.strip() for o in settings.ORIGIN_HOSTS.split(",")]
