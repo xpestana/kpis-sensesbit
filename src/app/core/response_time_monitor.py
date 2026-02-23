@@ -1,27 +1,24 @@
 """
 Health check cada 30s a api.sensesbit.com/health.
-Guarda un valor por hora; el endpoint expone las últimas 10 h en ms y en segundos.
+Cada 30s actualiza el registro de la hora actual (1ª, 2ª, … 10ª hora).
+Al pasar a la hora 11 se elimina el registro más antiguo; siempre hay como máximo 10 registros.
 """
 
 import asyncio
 import time
-from collections import deque
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
 
 HEALTH_URL = "https://api.sensesbit.com/health"
 CHECK_INTERVAL_SECONDS = 30
-SAVE_INTERVAL_SECONDS = 3600  # 1 hora
 RETENTION_HOURS = 10
 TIMEOUT_SECONDS = 10
 
-# Límite fijo en memoria: 1 entrada por hora × RETENTION_HOURS. Sin límite habría fuga.
-# deque(maxlen=N) descarta el más antiguo al append; nunca hay más de N entradas.
-MAX_REGISTROS_EN_MEMORIA = RETENTION_HOURS  # 10
-_history: deque[dict[str, Any]] = deque(maxlen=MAX_REGISTROS_EN_MEMORIA)
-_last_saved_at: datetime | None = None
+# Máximo 10 registros en memoria (uno por hora); sin fuga.
+MAX_REGISTROS_EN_MEMORIA = RETENTION_HOURS
+_history: list[dict[str, Any]] = []
 _last_check_at: datetime | None = None
 _last_error: str | None = None
 
@@ -30,58 +27,54 @@ def _do_http_get() -> None:
     requests.get(HEALTH_URL, timeout=TIMEOUT_SECONDS)
 
 
-def _prune_old() -> None:
-    """Elimina entradas con más de 10 horas."""
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=RETENTION_HOURS)
-    while _history and _history[0].get("at"):
-        try:
-            at = datetime.fromisoformat(_history[0]["at"].replace("Z", "+00:00"))
-            if at < cutoff:
-                _history.popleft()
-            else:
-                break
-        except (ValueError, TypeError):
-            _history.popleft()
+def _hour_key(now: datetime) -> str:
+    """Clave de la hora actual para agrupar (ej. 2025-02-16T14)."""
+    return now.strftime("%Y-%m-%dT%H")
 
 
 async def _check_once() -> None:
-    global _last_saved_at, _last_check_at, _last_error
+    global _last_check_at, _last_error
     now = datetime.now(timezone.utc)
     start = time.perf_counter()
+    hour = _hour_key(now)
+    at_iso = now.isoformat().replace("+00:00", "Z")
+
     try:
         await asyncio.to_thread(_do_http_get)
         elapsed_ms = (time.perf_counter() - start) * 1000
         _last_check_at = now
         _last_error = None
-
-        # Guardar solo cada hora
-        if _last_saved_at is None or (now - _last_saved_at).total_seconds() >= SAVE_INTERVAL_SECONDS:
-            _last_saved_at = now
-            _prune_old()
-            _history.append({
-                "at": now.isoformat().replace("+00:00", "Z"),
-                "response_time_ms": round(elapsed_ms, 2),
-                "response_time_sec": round(elapsed_ms / 1000, 4),
-            })
+        entry = {
+            "hour": hour,
+            "at": at_iso,
+            "response_time_ms": round(elapsed_ms, 2),
+            "response_time_sec": round(elapsed_ms / 1000, 4),
+            "error": None,
+        }
     except Exception as e:  # noqa: BLE001
         _last_error = str(e)
         _last_check_at = now
-        if _last_saved_at is None or (now - _last_saved_at).total_seconds() >= SAVE_INTERVAL_SECONDS:
-            _last_saved_at = now
-            _prune_old()
-            _history.append({
-                "at": now.isoformat().replace("+00:00", "Z"),
-                "response_time_ms": None,
-                "response_time_sec": None,
-                "error": str(e),
-            })
+        entry = {
+            "hour": hour,
+            "at": at_iso,
+            "response_time_ms": None,
+            "response_time_sec": None,
+            "error": str(e),
+        }
+
+    # Actualizar el registro de la hora actual o añadir uno nuevo
+    if _history and _history[-1].get("hour") == hour:
+        _history[-1] = entry
+    else:
+        _history.append(entry)
+        _history[:] = _history[-MAX_REGISTROS_EN_MEMORIA:]
 
 
 _background_task: asyncio.Task | None = None
 
 
 async def run_loop() -> None:
-    """Bucle: health check cada 30s; persiste un valor por hora."""
+    """Bucle: health check cada 30s; actualiza el registro de la hora actual."""
     while True:
         await _check_once()
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)
@@ -96,11 +89,9 @@ def start_background_task() -> None:
 
 def get_state() -> dict[str, Any]:
     """
-    Devuelve las últimas 10 h de datos (un punto por hora).
-    Cada punto incluye at, response_time_ms y response_time_sec.
+    Devuelve las últimas 10 h (un registro por hora, actualizado cada 30s).
+    Cada punto: at, response_time_ms, response_time_sec.
     """
-    _prune_old()
-    list_snapshot = list(_history)
     return {
         "ultimas_10_horas": [
             {
@@ -109,7 +100,7 @@ def get_state() -> dict[str, Any]:
                 "response_time_sec": e.get("response_time_sec"),
                 "error": e.get("error"),
             }
-            for e in list_snapshot
+            for e in _history
         ],
         "last_check_at": _last_check_at.isoformat().replace("+00:00", "Z") if _last_check_at else None,
         "last_error": _last_error,
