@@ -7,7 +7,9 @@ from sqlmodel import Session
 
 from app.models.answer import Answer
 from app.models.file import File
+from app.models.organization import Organization
 from app.models.question import Question
+from app.models.report import AIReportModel
 from app.models.section import Section
 from app.models.session import Session as SessionModel
 from app.models.user import User
@@ -79,3 +81,82 @@ class ProductoRepository:
         ).where(SessionModel.end_at.isnot(None))
         r = self._db.exec(stmt).one()
         return float(r) if r is not None else None
+
+    # --- KPIs IA (tabla report) ---
+
+    def total_reports(self) -> int:
+        """Total de análisis IA ejecutados (report sin borrar)."""
+        stmt = select(func.count(AIReportModel.id)).where(AIReportModel.deleted.is_(None))
+        r = self._db.execute(stmt).scalar()
+        return r or 0
+
+    def reports_by_tipo(self) -> list[tuple[str, int]]:
+        """Análisis IA por tipo (ai_engine): DualSense, JAR, Ranking, Verbatim, Drivers, etc."""
+        stmt = (
+            select(AIReportModel.ai_engine, func.count(AIReportModel.id))
+            .where(AIReportModel.deleted.is_(None))
+            .group_by(AIReportModel.ai_engine)
+            .order_by(func.count(AIReportModel.id).desc())
+        )
+        rows = self._db.execute(stmt).all()
+        return [(row[0], row[1]) for row in rows] if rows else []
+
+    def avg_duration_seconds_by_tipo(self) -> list[tuple[str, float]]:
+        """Tiempo medio de procesamiento (segundos) por tipo de análisis. Solo report con started y completed."""
+        stmt = (
+            select(
+                AIReportModel.ai_engine,
+                func.avg(func.extract("epoch", AIReportModel.generation_duration)).label("avg_sec"),
+            )
+            .where(
+                AIReportModel.deleted.is_(None),
+                AIReportModel.started.isnot(None),
+                AIReportModel.completed.isnot(None),
+            )
+            .group_by(AIReportModel.ai_engine)
+            .order_by(AIReportModel.ai_engine)
+        )
+        rows = self._db.execute(stmt).all()
+        return [(row[0], round(float(row[1] or 0), 2)) for row in rows] if rows else []
+
+    def sessions_with_ai_count(self) -> int:
+        """Sesiones distintas que tienen al menos un report (análisis IA)."""
+        stmt = (
+            select(func.count(func.distinct(AIReportModel.session_id)))
+            .where(AIReportModel.deleted.is_(None), AIReportModel.session_id.isnot(None))
+        )
+        r = self._db.execute(stmt).scalar()
+        return r or 0
+
+    def total_sessions(self) -> int:
+        """Total de sesiones (para % adopción)."""
+        r = self._db.execute(select(func.count(SessionModel.id))).scalar()
+        return r or 0
+
+    # --- KPIs shared.organizations (Credits / Credits IA) ---
+
+    def consumo_credits_por_plan(self) -> tuple[int, list[tuple[str, int]]]:
+        """Consumo de Muestras (credits): total y por plan (license_type). shared.organizations."""
+        total_stmt = select(func.coalesce(func.sum(Organization.credits), 0)).select_from(Organization)
+        total = int(self._db.execute(total_stmt).scalar() or 0)
+        por_plan_stmt = (
+            select(Organization.license_type, func.sum(Organization.credits))
+            .group_by(Organization.license_type)
+            .order_by(func.sum(Organization.credits).desc())
+        )
+        rows = self._db.execute(por_plan_stmt).all()
+        por_plan = [(row[0], int(row[1] or 0)) for row in rows] if rows else []
+        return total, por_plan
+
+    def consumo_credits_ia_por_plan(self) -> tuple[int, list[tuple[str, int]]]:
+        """Consumo de Créditos IA (credits_ia): total y por plan (license_type). shared.organizations."""
+        total_stmt = select(func.coalesce(func.sum(Organization.credits_ia), 0)).select_from(Organization)
+        total = int(self._db.execute(total_stmt).scalar() or 0)
+        por_plan_stmt = (
+            select(Organization.license_type, func.sum(Organization.credits_ia))
+            .group_by(Organization.license_type)
+            .order_by(func.sum(Organization.credits_ia).desc())
+        )
+        rows = self._db.execute(por_plan_stmt).all()
+        por_plan = [(row[0], int(row[1] or 0)) for row in rows] if rows else []
+        return total, por_plan

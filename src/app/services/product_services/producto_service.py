@@ -4,7 +4,6 @@ from datetime import date
 
 from sqlmodel import Session
 
-from app.core.logto_client import get_active_users as logto_get_active_users
 from app.repositories.product_repositories.producto_repository import ProductoRepository
 
 
@@ -18,29 +17,6 @@ class ProductoService:
             {"fecha": f.isoformat() if isinstance(f, date) else str(f), "count": c}
             for f, c in rows
         ]
-
-    def dau(self, fecha: str | None = None) -> dict:
-        """KPI 5: DAU desde Logto Management API (GET /api/dashboard/users/active)."""
-        date_str = fecha or date.today().isoformat()
-        raw = logto_get_active_users(date_str)
-        if "error" in raw:
-            return {"error": raw["error"], "status": raw.get("status"), "dau": None, "dauCurve": None}
-        return {
-            "dau": raw.get("dau"),
-            "dauCurve": raw.get("dauCurve", []),
-            "date": date_str,
-        }
-
-    def mau(self, fecha: str | None = None) -> dict:
-        """KPI 6: MAU desde Logto Management API (GET /api/dashboard/users/active)."""
-        date_str = fecha or date.today().isoformat()
-        raw = logto_get_active_users(date_str)
-        if "error" in raw:
-            return {"error": raw["error"], "status": raw.get("status"), "mau": None}
-        return {
-            "mau": raw.get("mau"),
-            "date": date_str,
-        }
 
     def frecuencia_uso(self) -> dict:
         """KPI 11: Frecuencia de uso = media de sesiones por cliente activo (por tenant)."""
@@ -84,4 +60,61 @@ class ProductoService:
         return {
             "duracion_media_segundos": round(segundos, 2),
             "duracion_media_minutos": round(segundos / 60, 2),
+        }
+
+    # --- KPIs IA (tabla report) ---
+
+    def analisis_ia_ejecutados(self) -> dict:
+        total = self._repo.total_reports()
+        por_tipo = self._repo.reports_by_tipo()
+        return {
+            "total": total,
+            "por_tipo": [{"tipo": tipo, "numero": n} for tipo, n in por_tipo],
+        }
+
+    def tiempo_procesamiento_ia(self) -> dict:
+        por_tipo = self._repo.avg_duration_seconds_by_tipo()
+        return {
+            "por_tipo": [
+                {
+                    "tipo": tipo,
+                    "segundos": seg,
+                    "minutos": round(seg / 60, 2),
+                }
+                for tipo, seg in por_tipo
+            ],
+        }
+
+    def adopcion_funcionalidades_ia(self) -> dict:
+        total_sesiones = self._repo.total_sessions()
+        sesiones_con_ia = self._repo.sessions_with_ai_count()
+        if total_sesiones == 0:
+            return {
+                "porcentaje": 0.0,
+                "sesiones_con_analisis_ia": 0,
+                "total_sesiones": 0,
+            }
+        pct = round(100.0 * sesiones_con_ia / total_sesiones, 2)
+        return {
+            "porcentaje": pct,
+            "sesiones_con_analisis_ia": sesiones_con_ia,
+            "total_sesiones": total_sesiones,
+        }
+
+    # --- KPIs shared.organizations (Credits / Credits IA) ---
+
+    def consumo_muestras(self) -> dict:
+        """KPI: Consumo de Muestras (Credits) — totales y por plan. Fuente: shared.organizations.credits."""
+        total, por_plan = self._repo.consumo_credits_por_plan()
+        return {
+            "total": total,
+            "por_plan": [{"plan": plan, "numero": n} for plan, n in por_plan],
+        }
+
+    def consumo_credits_ia(self) -> dict:
+        """KPI: Consumo de Créditos IA — totales y por plan. Fuente: shared.organizations.credits_ia."""
+        total, por_plan = self._repo.consumo_credits_ia_por_plan()
+        return {
+            "total": total,
+            "por_plan": [{"plan": plan, "numero": n} for plan, n in por_plan],
         }

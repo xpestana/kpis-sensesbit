@@ -1,12 +1,16 @@
 "KPI Producto"
 
+import requests
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.core.database import get_db_session
 from app.services.product_services.producto_service import ProductoService
 
 router = APIRouter(tags=["kpi-producto"])
+
+TIMEOUT = 15
 
 
 def get_service(db: Session = Depends(get_db_session)) -> ProductoService:
@@ -17,6 +21,23 @@ def get_service(db: Session = Depends(get_db_session)) -> ProductoService:
 async def test_endpoint():
     """Test endpoint: localhost:8000/kpi/Producto/test"""
     return {"message": "KPI Producto"}
+
+
+@router.get("/test-logto", response_model=None)
+async def test_logto():
+    """GET a la raíz de LOGTO_API_BASE para ver qué devuelve (sin oidc/token)."""
+    base = settings.LOGTO_API_BASE.rstrip("/")
+    url = f"{base}/"
+    try:
+        r = requests.get(url, timeout=TIMEOUT, allow_redirects=True)
+        return {
+            "url": url,
+            "status_code": r.status_code,
+            "content_type": r.headers.get("Content-Type", ""),
+            "body": r.text[:4000] if r.text else "(vacío)",
+        }
+    except requests.RequestException as e:
+        return {"url": url, "error": str(e)}
 
 
 ########################################################
@@ -40,25 +61,50 @@ async def response_time():
 async def sesiones_creadas(service: ProductoService = Depends(get_service)):
     return {"kpi": "Sesiones Creadas", "datos": service.sesiones_creadas_por_fecha()}
 
+#falta dau
+#falta mau
 
-# Usuarios activos diarios (Logto Management API)
-@router.get("/dau", response_model=None)
-async def usuarios_activos_diarios(
-    service: ProductoService = Depends(get_service),
-    date: str | None = None,
-):
-    """DAU desde Logto GET /api/dashboard/users/active. Opcional: ?date=YYYY-MM-DD."""
-    return {"kpi": "DAU", "datos": service.dau(fecha=date)}
+# Análisis IA ejecutados + por tipo (DualSense, JAR, Ranking, Verbatim, Drivers)
+@router.get("/analisis-ia-ejecutados", response_model=None)
+async def analisis_ia_ejecutados(service: ProductoService = Depends(get_service)):
+    return {"kpi": "Análisis IA Ejecutados", "datos": service.analisis_ia_ejecutados()}
+
+# Tiempo medio de procesamiento IA por tipo de análisis (segundos/minutos)
+@router.get("/tiempo-procesamiento-ia", response_model=None)
+async def tiempo_procesamiento_ia(service: ProductoService = Depends(get_service)):
+    """KPI: Tiempo medio de procesamiento por tipo de análisis. Fuente: report.generation_duration."""
+    return {"kpi": "Tiempo de Procesamiento IA", "datos": service.tiempo_procesamiento_ia()}
 
 
-# Usuarios activos mensuales (Logto Management API)
-@router.get("/mau", response_model=None)
-async def usuarios_activos_mensuales(
-    service: ProductoService = Depends(get_service),
-    date: str | None = None,
-):
-    """MAU desde Logto GET /api/dashboard/users/active. Opcional: ?date=YYYY-MM-DD."""
-    return {"kpi": "MAU", "datos": service.mau(fecha=date)}
+########################################################
+# KPI : Adopción y Features
+########################################################
+
+# % clientes (sesiones) que utilizan análisis IA
+@router.get("/adopcion-funcionalidades-ia", response_model=None)
+async def adopcion_funcionalidades_ia(service: ProductoService = Depends(get_service)):
+    """KPI: % de sesiones que tienen al menos un report (análisis IA)."""
+    return {"kpi": "Adopción de Funcionalidades IA", "datos": service.adopcion_funcionalidades_ia()}
+
+
+# Consumo de Muestras (Credits) — totales y por plan — shared.organizations
+@router.get("/consumo-muestras", response_model=None)
+async def consumo_muestras(service: ProductoService = Depends(get_service)):
+    """KPI: Muestras consumidas totales y por plan. Fuente: shared.organizations.credits."""
+    return {"kpi": "Consumo de Muestras", "datos": service.consumo_muestras()}
+
+
+# Consumo de Créditos IA — totales y por plan — shared.organizations
+@router.get("/consumo-credits-ia", response_model=None)
+async def consumo_credits_ia(service: ProductoService = Depends(get_service)):
+    """KPI: Créditos IA consumidos totales y por plan. Fuente: shared.organizations.credits_ia."""
+    return {"kpi": "Consumo de Créditos IA", "datos": service.consumo_credits_ia()}
+
+
+
+
+
+
 
 
 @router.get("/frecuencia-uso", response_model=None)
