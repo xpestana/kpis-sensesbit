@@ -48,11 +48,17 @@ async def test_logto():
 # Tiempo de respuesta de API
 @router.get("/response-time", response_model=None)
 async def response_time():
+    from datetime import datetime, timezone
     from app.core.response_time_monitor import get_state
     state = get_state()
+
+    def _fmt(at: str) -> str:
+        dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
+        return dt.strftime("%d/%m/%Y %H:%M:%S UTC")
+
     return [
         {
-            "time": e["at"],
+            "time": _fmt(e["at"]),
             "response_time_ms": e["response_time_ms"],
             "response_time_sec": e["response_time_sec"],
         }
