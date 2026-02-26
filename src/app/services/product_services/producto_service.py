@@ -19,7 +19,7 @@ class ProductoService:
         rows = self._repo.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)
         if not rows:
             label = date_from.strftime("%d/%m/%Y") if date_from else datetime.now().strftime("%d/%m/%Y")
-            return [{"time": label, "value": "no data"}]
+            return [{"time": label, "value": 0}]
         return [
             {
                 "time": f.strftime("%d/%m/%Y") if isinstance(f, date) else str(f),
