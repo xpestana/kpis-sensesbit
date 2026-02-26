@@ -71,13 +71,11 @@ class ProductoService:
 
     # --- KPIs IA (tabla report) ---
 
-    def analisis_ia_ejecutados(self) -> dict:
-        total = self._repo.total_reports()
+    def analisis_ia_ejecutados(self) -> list[dict]:
         por_tipo = self._repo.reports_by_tipo()
-        return {
-            "total": total,
-            "por_tipo": [{"tipo": tipo, "numero": n} for tipo, n in por_tipo],
-        }
+        if not por_tipo:
+            return [{"total": 0, "tipo": "vacio"}]
+        return [{"total": n, "tipo": tipo} for tipo, n in por_tipo]
 
     def tiempo_procesamiento_ia(self) -> dict:
         por_tipo = self._repo.avg_duration_seconds_by_tipo()

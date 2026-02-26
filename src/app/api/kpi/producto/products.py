@@ -90,7 +90,7 @@ async def sesiones_creadas(
 # Análisis IA ejecutados + por tipo (DualSense, JAR, Ranking, Verbatim, Drivers)
 @router.get("/analisis-ia-ejecutados", response_model=None)
 async def analisis_ia_ejecutados(service: ProductoService = Depends(get_service)):
-    return {"kpi": "Análisis IA Ejecutados", "datos": service.analisis_ia_ejecutados()}
+    return service.analisis_ia_ejecutados()
 
 # Tiempo medio de procesamiento IA por tipo de análisis (segundos/minutos)
 @router.get("/tiempo-procesamiento-ia", response_model=None)
