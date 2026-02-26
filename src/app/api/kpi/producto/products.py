@@ -49,7 +49,15 @@ async def test_logto():
 @router.get("/response-time", response_model=None)
 async def response_time():
     from app.core.response_time_monitor import get_state
-    return {"kpi": "Response time (api.sensesbit.com/health)", "datos": get_state()}
+    state = get_state()
+    return [
+        {
+            "time": e["at"],
+            "response_time_ms": e["response_time_ms"],
+            "response_time_sec": e["response_time_sec"],
+        }
+        for e in state["ultimas_10_horas"]
+    ]
 
 
 ########################################################
