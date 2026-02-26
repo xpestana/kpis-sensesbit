@@ -50,22 +50,29 @@ async def test_logto():
 # Tiempo de respuesta de API
 @router.get("/response-time", response_model=None)
 async def response_time():
-    from datetime import datetime, timezone
-    from app.core.response_time_monitor import get_state
-    state = get_state()
+    from datetime import timedelta
+    from app.core.response_time_monitor import _history
 
-    def _fmt(at: str) -> str:
-        dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
-        return dt.strftime("%d/%m/%Y %H:%M:%S UTC")
+    now = datetime.now(timezone.utc)
 
-    return [
-        {
-            "time": _fmt(e["at"]),
-            "response_time_ms": e["response_time_ms"],
-            "response_time_sec": e["response_time_sec"],
-        }
-        for e in state["ultimas_10_horas"]
-    ]
+    # Mapa de hour_key -> entrada del historial
+    history_map = {e["hour"]: e for e in _history}
+
+    result = {}
+    for i in range(9, -1, -1):
+        slot_dt = now - timedelta(hours=i)
+        hour_key = slot_dt.strftime("%Y-%m-%dT%H")
+
+        if hour_key in history_map:
+            e = history_map[hour_key]
+            at_dt = datetime.fromisoformat(e["at"].replace("Z", "+00:00"))
+            label = at_dt.strftime("%d/%m/%Y %H:%M:%S UTC")
+            result[label] = e.get("response_time_sec") or 0
+        else:
+            label = slot_dt.strftime("%d/%m/%Y %H:00:00 UTC")
+            result[label] = 0
+
+    return result
 
 
 ########################################################
