@@ -1,7 +1,9 @@
 "KPI Producto"
 
+from datetime import datetime, timezone
+
 import requests
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from app.core.config import settings
@@ -72,8 +74,14 @@ async def response_time():
 
 # Sesiones creadas por fecha
 @router.get("/sesiones-creadas", response_model=None)
-async def sesiones_creadas(service: ProductoService = Depends(get_service)):
-    return {"kpi": "Sesiones Creadas", "datos": service.sesiones_creadas_por_fecha()}
+async def sesiones_creadas(
+    from_ms: int | None = Query(default=None, description="Fecha inicio en epoch milisegundos"),
+    to_ms: int | None = Query(default=None, description="Fecha fin en epoch milisegundos"),
+    service: ProductoService = Depends(get_service),
+):
+    date_from = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc) if from_ms is not None else None
+    date_to = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc) if to_ms is not None else None
+    return {"kpi": "Sesiones Creadas", "datos": service.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)}
 
 #falta dau
 #falta mau

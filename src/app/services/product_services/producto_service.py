@@ -1,6 +1,6 @@
 """Servicio: orquestación y transformación de datos para KPIs de producto."""
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlmodel import Session
 
@@ -11,8 +11,12 @@ class ProductoService:
     def __init__(self, db: Session) -> None:
         self._repo = ProductoRepository(db)
 
-    def sesiones_creadas_por_fecha(self) -> list[dict]:
-        rows = self._repo.sesiones_creadas_por_fecha()
+    def sesiones_creadas_por_fecha(
+        self,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[dict]:
+        rows = self._repo.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)
         return [
             {"fecha": f.isoformat() if isinstance(f, date) else str(f), "count": c}
             for f, c in rows

@@ -1,6 +1,6 @@
 """Repositorio: solo acceso a datos para KPIs de producto. Sin lógica de negocio."""
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import func, select
 from sqlmodel import Session
@@ -19,12 +19,20 @@ class ProductoRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def sesiones_creadas_por_fecha(self) -> list[tuple[date, int]]:
+    def sesiones_creadas_por_fecha(
+        self,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[tuple[date, int]]:
         stmt = (
             select(func.date(SessionModel.created).label("fecha"), func.count(SessionModel.id))
             .group_by(func.date(SessionModel.created))
             .order_by(func.date(SessionModel.created))
         )
+        if date_from is not None:
+            stmt = stmt.where(SessionModel.created >= date_from)
+        if date_to is not None:
+            stmt = stmt.where(SessionModel.created <= date_to)
         rows = self._db.exec(stmt).all()
         return [(r[0], r[1]) for r in rows] if rows else []
 
