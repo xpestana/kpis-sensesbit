@@ -60,6 +60,7 @@ async def response_time():
         {
             "time": _fmt(e["at"]),
             "response_time_ms": e["response_time_ms"],
+            "response_time_sec": e["response_time_sec"],
         }
         for e in state["ultimas_10_horas"]
     ]
