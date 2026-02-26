@@ -18,7 +18,10 @@ class ProductoService:
     ) -> list[dict]:
         rows = self._repo.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)
         return [
-            {"fecha": f.isoformat() if isinstance(f, date) else str(f), "count": c}
+            {
+                "time": f"{f.isoformat() if isinstance(f, date) else str(f)}T00:00:00Z",
+                "value": c,
+            }
             for f, c in rows
         ]
 

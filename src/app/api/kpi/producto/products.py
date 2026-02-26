@@ -82,7 +82,7 @@ async def sesiones_creadas(
     today = datetime.now(tz=timezone.utc).date()
     date_from = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc) if from_ms is not None else datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=timezone.utc)
     date_to = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc) if to_ms is not None else datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc)
-    return {"kpi": "Sesiones Creadas", "datos": service.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)}
+    return service.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)
 
 #falta dau
 #falta mau
