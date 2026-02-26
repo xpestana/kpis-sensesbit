@@ -19,7 +19,7 @@ class ProductoService:
         rows = self._repo.sesiones_creadas_por_fecha(date_from=date_from, date_to=date_to)
         return [
             {
-                "time": f"{f.isoformat() if isinstance(f, date) else str(f)}T00:00:00Z",
+                "time": f.strftime("%d/%m/%Y") if isinstance(f, date) else str(f),
                 "value": c,
             }
             for f, c in rows
