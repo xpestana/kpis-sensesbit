@@ -1,7 +1,7 @@
 """
 Health check cada 30s a api.sensesbit.com/health.
-Cada 30s actualiza el registro de la hora actual (1ª, 2ª, … 10ª hora).
-Al pasar a la hora 11 se elimina el registro más antiguo; siempre hay como máximo 10 registros.
+Acumula todas las mediciones por hora; guarda como máximo 10 horas.
+Al calcular el valor de cada hora se usa la media de todas sus mediciones.
 """
 
 import asyncio
@@ -16,8 +16,8 @@ CHECK_INTERVAL_SECONDS = 30
 RETENTION_HOURS = 10
 TIMEOUT_SECONDS = 10
 
-# Máximo 10 registros en memoria (uno por hora); sin fuga.
 MAX_REGISTROS_EN_MEMORIA = RETENTION_HOURS
+# Cada entrada: {"hour": str, "samples": [float, ...], "errors": [str, ...]}
 _history: list[dict[str, Any]] = []
 _last_check_at: datetime | None = None
 _last_error: str | None = None
@@ -28,7 +28,6 @@ def _do_http_get() -> None:
 
 
 def _hour_key(now: datetime) -> str:
-    """Clave de la hora actual para agrupar (ej. 2025-02-16T14)."""
     return now.strftime("%Y-%m-%dT%H")
 
 
@@ -37,36 +36,32 @@ async def _check_once() -> None:
     now = datetime.now(timezone.utc)
     start = time.perf_counter()
     hour = _hour_key(now)
-    at_iso = now.isoformat().replace("+00:00", "Z")
 
     try:
         await asyncio.to_thread(_do_http_get)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_sec = round((time.perf_counter() - start), 4)
         _last_check_at = now
         _last_error = None
-        entry = {
-            "hour": hour,
-            "at": at_iso,
-            "response_time_ms": round(elapsed_ms, 2),
-            "response_time_sec": round(elapsed_ms / 1000, 4),
-            "error": None,
-        }
+        sample = elapsed_sec
+        error = None
     except Exception as e:  # noqa: BLE001
         _last_error = str(e)
         _last_check_at = now
-        entry = {
-            "hour": hour,
-            "at": at_iso,
-            "response_time_ms": None,
-            "response_time_sec": None,
-            "error": str(e),
-        }
+        sample = None
+        error = str(e)
 
-    # Actualizar el registro de la hora actual o añadir uno nuevo
-    if _history and _history[-1].get("hour") == hour:
-        _history[-1] = entry
+    # Acumular en la entrada de la hora actual o crear una nueva
+    if _history and _history[-1]["hour"] == hour:
+        if sample is not None:
+            _history[-1]["samples"].append(sample)
+        if error is not None:
+            _history[-1]["errors"].append(error)
     else:
-        _history.append(entry)
+        _history.append({
+            "hour": hour,
+            "samples": [sample] if sample is not None else [],
+            "errors": [error] if error is not None else [],
+        })
         _history[:] = _history[-MAX_REGISTROS_EN_MEMORIA:]
 
 

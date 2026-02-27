@@ -55,22 +55,21 @@ async def response_time():
 
     now = datetime.now(timezone.utc)
 
-    # Mapa de hour_key -> entrada del historial
     history_map = {e["hour"]: e for e in _history}
 
     result = {}
     for i in range(9, -1, -1):
         slot_dt = now - timedelta(hours=i)
         hour_key = slot_dt.strftime("%Y-%m-%dT%H")
+        label = slot_dt.strftime("%d/%m/%Y %H:00 UTC")
 
         if hour_key in history_map:
-            e = history_map[hour_key]
-            at_dt = datetime.fromisoformat(e["at"].replace("Z", "+00:00"))
-            label = at_dt.strftime("%d/%m/%Y %H:%M:%S UTC")
-            result[label] = e.get("response_time_sec") or 0
+            samples = history_map[hour_key].get("samples", [])
+            avg = round(sum(samples) / len(samples), 4) if samples else 0
         else:
-            label = slot_dt.strftime("%d/%m/%Y %H:00:00 UTC")
-            result[label] = 0
+            avg = 0
+
+        result[label] = avg
 
     return result
 
