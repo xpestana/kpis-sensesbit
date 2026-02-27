@@ -119,17 +119,17 @@ async def tiempo_procesamiento_ia(service: ProductoService = Depends(get_service
 # KPI : Adopción y Features
 ########################################################
 
-# % clientes (sesiones) que utilizan análisis IA
-@router.get("/adopcion-funcionalidades-ia", response_model=None)
-async def adopcion_funcionalidades_ia(service: ProductoService = Depends(get_service)):
-    """KPI: % de sesiones que tienen al menos un report (análisis IA)."""
-    return {"kpi": "Adopción de Funcionalidades IA", "datos": service.adopcion_funcionalidades_ia()}
-
 
 @router.get("/frecuencia-uso", response_model=None)
 async def frecuencia_uso(service: ProductoService = Depends(get_service)):
     "frequency of use = sessions per active user. localhost:8000/kpi/Producto/frecuencia-uso"
     return {"kpi": "Frecuencia de Uso", "datos": service.frecuencia_uso()}
+
+
+# % clientes (sesiones) que utilizan análisis IA
+@router.get("/adopcion-funcionalidades-ia", response_model=None)
+async def adopcion_funcionalidades_ia(service: ProductoService = Depends(get_service)):
+    return service.adopcion_funcionalidades_ia()
 
 
 @router.get("/exportaciones-generadas", response_model=None)
