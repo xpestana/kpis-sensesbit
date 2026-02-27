@@ -99,17 +99,16 @@ async def sesiones_creadas(
 async def analisis_ia_ejecutados(service: ProductoService = Depends(get_service)):
     return service.analisis_ia_ejecutados()
 
-# Consumo de Muestras (Credits) — totales y por plan — shared.organizations
-@router.get("/consumo-muestras", response_model=None)
-async def consumo_muestras(service: ProductoService = Depends(get_service)):
-    return service.consumo_muestras()
-
 
 # Consumo de Créditos IA — totales y por plan — shared.organizations
 @router.get("/consumo-credits-ia", response_model=None)
 async def consumo_credits_ia(service: ProductoService = Depends(get_service)):
-    """KPI: Créditos IA consumidos totales y por plan. Fuente: shared.organizations.credits_ia."""
-    return {"kpi": "Consumo de Créditos IA", "datos": service.consumo_credits_ia()}
+    return service.consumo_credits_ia()
+
+# Consumo de Muestras (Credits) — totales y por plan — shared.organizations
+@router.get("/consumo-muestras", response_model=None)
+async def consumo_muestras(service: ProductoService = Depends(get_service)):
+    return service.consumo_muestras()
 
 # Tiempo medio de procesamiento IA por tipo de análisis (segundos/minutos)
 @router.get("/tiempo-procesamiento-ia", response_model=None)

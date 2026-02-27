@@ -123,5 +123,5 @@ class ProductoService:
         total, por_plan = self._repo.consumo_credits_ia_por_plan()
         return {
             "total": total,
-            "por_plan": [{"plan": plan, "numero": n} for plan, n in por_plan],
+            "por_plan": [{"plan": plan, "Creditos": n} for plan, n in por_plan],
         }
