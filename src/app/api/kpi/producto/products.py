@@ -102,8 +102,7 @@ async def analisis_ia_ejecutados(service: ProductoService = Depends(get_service)
 # Consumo de Muestras (Credits) — totales y por plan — shared.organizations
 @router.get("/consumo-muestras", response_model=None)
 async def consumo_muestras(service: ProductoService = Depends(get_service)):
-    """KPI: Muestras consumidas totales y por plan. Fuente: shared.organizations.credits."""
-    return {"kpi": "Consumo de Muestras", "datos": service.consumo_muestras()}
+    return service.consumo_muestras()
 
 
 # Consumo de Créditos IA — totales y por plan — shared.organizations
