@@ -79,18 +79,10 @@ class ProductoService:
         por_tipo = {tipo: n for tipo, n in self._repo.reports_by_tipo()}
         return [{"tipo": t, "total": por_tipo.get(t, 0)} for t in TIPOS]
 
-    def tiempo_procesamiento_ia(self) -> dict:
-        por_tipo = self._repo.avg_duration_seconds_by_tipo()
-        return {
-            "por_tipo": [
-                {
-                    "tipo": tipo,
-                    "segundos": seg,
-                    "minutos": round(seg / 60, 2),
-                }
-                for tipo, seg in por_tipo
-            ],
-        }
+    def tiempo_procesamiento_ia(self) -> list[dict]:
+        TIPOS = ["DualSense", "JAR", "Ranking", "Verbatim", "Drivers"]
+        por_tipo = {tipo: seg for tipo, seg in self._repo.avg_duration_seconds_by_tipo()}
+        return [{"tipo": t, "segundos": por_tipo.get(t, 0)} for t in TIPOS]
 
     def adopcion_funcionalidades_ia(self) -> dict:
         total_sesiones = self._repo.total_sessions()

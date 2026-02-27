@@ -113,8 +113,7 @@ async def consumo_muestras(service: ProductoService = Depends(get_service)):
 # Tiempo medio de procesamiento IA por tipo de análisis (segundos/minutos)
 @router.get("/tiempo-procesamiento-ia", response_model=None)
 async def tiempo_procesamiento_ia(service: ProductoService = Depends(get_service)):
-    """KPI: Tiempo medio de procesamiento por tipo de análisis. Fuente: report.generation_duration."""
-    return {"kpi": "Tiempo de Procesamiento IA", "datos": service.tiempo_procesamiento_ia()}
+    return service.tiempo_procesamiento_ia()
 
 
 ########################################################
